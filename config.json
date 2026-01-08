@@ -10,6 +10,14 @@
     "retentionDays": 7,
     "outputDir": "./recordings"
   },
+  "watermark": {
+    "enabled": true,
+    "format": "%Y-%m-%d %H:%M:%S",
+    "position": "bottom-right",
+    "fontSize": 24,
+    "fontColor": "white",
+    "backgroundColor": "black@0.5"
+  },
   "server": {
     "port": 8081
   }

@@ -10,5 +10,7 @@ services:
     volumes:
       - ./recordings:/app/recordings
       - ./config.json:/app/config.json:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     environment:
       - NODE_ENV=production

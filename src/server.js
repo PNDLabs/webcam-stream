@@ -96,7 +96,7 @@ function createServer(camera, recorder, cleanup, config) {
     const filePath = path.join(outputDir, filename);
 
     res.sendFile(filePath, (err) => {
-      if (err) {
+      if (err && !res.headersSent) {
         res.status(404).json({ error: 'Recording not found' });
       }
     });

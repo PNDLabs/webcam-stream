@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -8,6 +8,11 @@ import Cleanup from './cleanup.js';
 import createServer from './server.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Set timezone from /etc/timezone if TZ not already set
+if (!process.env.TZ && existsSync('/etc/timezone')) {
+  process.env.TZ = readFileSync('/etc/timezone', 'utf-8').trim();
+}
 
 // Load configuration
 const configPath = path.join(__dirname, '../config.json');
@@ -25,10 +30,11 @@ console.log(`Camera device: ${config.camera.device}`);
 console.log(`Resolution: ${config.camera.resolution} @ ${config.camera.framerate} fps`);
 console.log(`Recording: ${config.recording.enabled ? 'Enabled' : 'Disabled'}`);
 console.log(`Retention: ${config.recording.retentionDays} days`);
+console.log(`Watermark: ${config.watermark?.enabled ? 'Enabled' : 'Disabled'}`);
 
 // Initialize components
 const camera = new Camera(config.camera);
-const recorder = new Recorder(config.recording, config.camera);
+const recorder = new Recorder(config.recording, config.camera, config.watermark);
 const cleanup = new Cleanup(config.recording);
 
 // Create and start server

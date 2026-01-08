@@ -3,14 +3,59 @@ import { existsSync, mkdirSync } from 'fs';
 import path from 'path';
 
 class Recorder {
-  constructor(config, cameraConfig) {
+  constructor(config, cameraConfig, watermarkConfig = {}) {
     this.config = config;
     this.cameraConfig = cameraConfig;
+    this.watermarkConfig = watermarkConfig;
     this.process = null;
     this.isRecording = false;
     this.currentFile = null;
     this.segmentTimer = null;
     this.frameHandler = null;
+  }
+
+  buildWatermarkFilter() {
+    if (!this.watermarkConfig.enabled) {
+      return null;
+    }
+
+    const {
+      format = '%Y-%m-%d %H:%M:%S',
+      position = 'bottom-right',
+      fontSize = 24,
+      fontColor = 'white',
+      backgroundColor = 'black@0.5'
+    } = this.watermarkConfig;
+
+    // Escape colons in the format string for FFmpeg drawtext
+    // Colons need double-escaping: \\\: in JS becomes \\: passed to FFmpeg
+    const escapedFormat = format.replace(/:/g, '\\\\:');
+
+    // Calculate position coordinates
+    const padding = 10;
+    let x, y;
+    switch (position) {
+      case 'top-left':
+        x = padding;
+        y = padding;
+        break;
+      case 'top-right':
+        x = `w-tw-${padding}`;
+        y = padding;
+        break;
+      case 'bottom-left':
+        x = padding;
+        y = `h-th-${padding}`;
+        break;
+      case 'bottom-right':
+      default:
+        x = `w-tw-${padding}`;
+        y = `h-th-${padding}`;
+        break;
+    }
+
+    // Build filter - use simple escaping for spawn (no shell)
+    return `drawtext=text='%{localtime}':fontsize=${fontSize}:fontcolor=${fontColor}:box=1:boxcolor=black:boxborderw=5:x=${x}:y=${y}`;
   }
 
   ensureOutputDir() {
@@ -53,20 +98,25 @@ class Recorder {
     this.currentFile = path.join(outputDir, filename);
 
     // FFmpeg receives MJPEG frames via stdin and outputs MP4
+    const watermarkFilter = this.buildWatermarkFilter();
     const args = [
       '-f', 'mjpeg',
       '-framerate', String(this.cameraConfig.framerate),
       '-i', 'pipe:0',
+      ...(watermarkFilter ? ['-vf', watermarkFilter] : []),
       '-c:v', 'libx264',
+      '-pix_fmt', 'yuv420p',
       '-preset', 'ultrafast',
       '-tune', 'zerolatency',
       '-crf', '23',
+      '-movflags', '+faststart',
       '-t', String(this.config.segmentDuration),
       '-y',
       this.currentFile
     ];
 
     console.log(`Starting recording: ${this.currentFile}`);
+    console.log(`FFmpeg args: ffmpeg ${args.join(' ')}`);
 
     this.process = spawn('ffmpeg', args, {
       stdio: ['pipe', 'pipe', 'pipe']
@@ -89,8 +139,9 @@ class Recorder {
 
     this.process.stderr.on('data', (data) => {
       const msg = data.toString();
-      if (msg.includes('Error') || msg.includes('error')) {
-        console.error('Recording error:', msg.trim());
+      // Log errors and filter-related issues
+      if (msg.includes('Error') || msg.includes('error') || msg.includes('Invalid') || msg.includes('drawtext')) {
+        console.error('Recording FFmpeg:', msg.trim());
       }
     });
 
