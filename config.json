@@ -1,0 +1,16 @@
+{
+  "camera": {
+    "device": "/dev/video2",
+    "resolution": "1280x720",
+    "framerate": 15
+  },
+  "recording": {
+    "enabled": true,
+    "segmentDuration": 3600,
+    "retentionDays": 7,
+    "outputDir": "./recordings"
+  },
+  "server": {
+    "port": 8081
+  }
+}

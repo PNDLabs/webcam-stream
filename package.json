@@ -1,0 +1,24 @@
+{
+  "name": "webcam-stream",
+  "version": "1.0.0",
+  "description": "USB webcam streaming and security camera with loop recording",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "webcam",
+    "streaming",
+    "security-camera",
+    "mjpeg",
+    "home-assistant"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3"
+  }
+}

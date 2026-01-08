@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Camera</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Security Camera</h1>
+      <div class="status-bar">
+        <span id="cameraStatus" class="status-badge offline">Camera: Offline</span>
+        <span id="recordingStatus" class="status-badge offline">Recording: Off</span>
+        <span id="clientCount">Viewers: 0</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="video-section">
+        <div class="video-container">
+          <img id="liveStream" src="/stream" alt="Live Stream">
+          <div id="streamError" class="stream-error hidden">
+            <p>Stream unavailable</p>
+            <button onclick="reconnectStream()">Reconnect</button>
+          </div>
+        </div>
+        <div class="video-controls">
+          <button id="snapshotBtn" onclick="takeSnapshot()">Take Snapshot</button>
+          <button id="toggleRecording" onclick="toggleRecording()">Toggle Recording</button>
+          <button onclick="refreshStatus()">Refresh Status</button>
+        </div>
+      </section>
+
+      <section class="config-section">
+        <h2>Configuration</h2>
+        <div class="config-form">
+          <div class="form-group">
+            <label for="retentionDays">Retention (days):</label>
+            <input type="number" id="retentionDays" min="1" max="365" value="7">
+            <button onclick="saveConfig()">Save</button>
+          </div>
+          <div class="form-group">
+            <label for="recordingEnabled">Auto Recording:</label>
+            <input type="checkbox" id="recordingEnabled" checked>
+          </div>
+        </div>
+        <div class="storage-info">
+          <h3>Storage</h3>
+          <p id="storageStats">Loading...</p>
+        </div>
+      </section>
+
+      <section class="recordings-section">
+        <h2>Recordings</h2>
+        <div class="recordings-controls">
+          <button onclick="loadRecordings()">Refresh</button>
+          <button onclick="runCleanup()">Run Cleanup</button>
+        </div>
+        <div id="recordingsList" class="recordings-list">
+          <p>Loading recordings...</p>
+        </div>
+      </section>
+
+      <section class="playback-section hidden" id="playbackSection">
+        <h2>Playback</h2>
+        <div class="playback-container">
+          <video id="playbackVideo" controls></video>
+          <button onclick="closePlayback()">Close</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Home Assistant Integration: <code>http://&lt;IP&gt;:8080/stream</code></p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

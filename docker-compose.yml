@@ -1,0 +1,14 @@
+services:
+  webcam-stream:
+    build: .
+    container_name: webcam-stream
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    devices:
+      - /dev/video2:/dev/video2
+    volumes:
+      - ./recordings:/app/recordings
+      - ./config.json:/app/config.json:ro
+    environment:
+      - NODE_ENV=production
