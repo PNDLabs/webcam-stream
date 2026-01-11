@@ -219,15 +219,38 @@ class Recorder {
     };
   }
 
-  updateConfig(newConfig) {
+  updateConfig(newConfig, watermarkConfig = null) {
     const wasEnabled = this.config.enabled;
+    const wasRecording = this.isRecording;
+
+    // Check if watermark config changed
+    const watermarkChanged = watermarkConfig !== null &&
+      JSON.stringify(this.watermarkConfig) !== JSON.stringify({ ...this.watermarkConfig, ...watermarkConfig });
+
+    // Check if segment duration changed
+    const segmentDurationChanged = newConfig.segmentDuration !== undefined &&
+      newConfig.segmentDuration !== this.config.segmentDuration;
+
     this.config = { ...this.config, ...newConfig };
+
+    if (watermarkConfig !== null) {
+      this.watermarkConfig = { ...this.watermarkConfig, ...watermarkConfig };
+    }
 
     if (wasEnabled && !this.config.enabled) {
       this.stop();
     } else if (!wasEnabled && this.config.enabled && this.camera) {
       this.start(this.camera);
+    } else if (wasRecording && (watermarkChanged || segmentDurationChanged)) {
+      // Restart current segment to apply watermark or duration changes
+      console.log('Recording config changed, restarting segment...');
+      this.stopCurrentSegment();
+      setTimeout(() => this.startSegment(), 1000);
     }
+  }
+
+  updateCameraConfig(cameraConfig) {
+    this.cameraConfig = { ...this.cameraConfig, ...cameraConfig };
   }
 }
 

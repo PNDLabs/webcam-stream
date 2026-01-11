@@ -111,29 +111,120 @@ function createServer(camera, recorder, cleanup, config) {
   app.post('/api/config', (req, res) => {
     try {
       const updates = req.body;
+      const recordingUpdates = {};
+      const watermarkUpdates = {};
+      const cameraUpdates = {};
+      let cameraChanged = false;
 
-      // Update retention days
+      // Camera settings
+      if (updates.camera) {
+        if (updates.camera.device !== undefined) {
+          config.camera.device = updates.camera.device;
+          cameraUpdates.device = updates.camera.device;
+          cameraChanged = true;
+        }
+        if (updates.camera.resolution !== undefined) {
+          config.camera.resolution = updates.camera.resolution;
+          cameraUpdates.resolution = updates.camera.resolution;
+          cameraChanged = true;
+        }
+        if (updates.camera.framerate !== undefined) {
+          const fps = parseInt(updates.camera.framerate, 10);
+          if (fps >= 1 && fps <= 60) {
+            config.camera.framerate = fps;
+            cameraUpdates.framerate = fps;
+            cameraChanged = true;
+          }
+        }
+      }
+
+      // Recording settings
+      if (updates.recording) {
+        if (updates.recording.retentionDays !== undefined) {
+          const days = parseInt(updates.recording.retentionDays, 10);
+          if (days >= 1 && days <= 365) {
+            config.recording.retentionDays = days;
+            recordingUpdates.retentionDays = days;
+            cleanup.updateConfig({ retentionDays: days });
+          }
+        }
+        if (updates.recording.enabled !== undefined) {
+          config.recording.enabled = Boolean(updates.recording.enabled);
+          recordingUpdates.enabled = config.recording.enabled;
+        }
+        if (updates.recording.segmentDuration !== undefined) {
+          const duration = parseInt(updates.recording.segmentDuration, 10);
+          if (duration >= 60 && duration <= 86400) {
+            config.recording.segmentDuration = duration;
+            recordingUpdates.segmentDuration = duration;
+          }
+        }
+      }
+
+      // Watermark settings
+      if (updates.watermark) {
+        if (updates.watermark.enabled !== undefined) {
+          config.watermark.enabled = Boolean(updates.watermark.enabled);
+          watermarkUpdates.enabled = config.watermark.enabled;
+        }
+        if (updates.watermark.format !== undefined) {
+          config.watermark.format = updates.watermark.format;
+          watermarkUpdates.format = updates.watermark.format;
+        }
+        if (updates.watermark.position !== undefined) {
+          const validPositions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+          if (validPositions.includes(updates.watermark.position)) {
+            config.watermark.position = updates.watermark.position;
+            watermarkUpdates.position = updates.watermark.position;
+          }
+        }
+        if (updates.watermark.fontSize !== undefined) {
+          const size = parseInt(updates.watermark.fontSize, 10);
+          if (size >= 8 && size <= 72) {
+            config.watermark.fontSize = size;
+            watermarkUpdates.fontSize = size;
+          }
+        }
+        if (updates.watermark.fontColor !== undefined) {
+          config.watermark.fontColor = updates.watermark.fontColor;
+          watermarkUpdates.fontColor = updates.watermark.fontColor;
+        }
+        if (updates.watermark.backgroundColor !== undefined) {
+          config.watermark.backgroundColor = updates.watermark.backgroundColor;
+          watermarkUpdates.backgroundColor = updates.watermark.backgroundColor;
+        }
+      }
+
+      // Legacy support for flat structure
       if (updates.retentionDays !== undefined) {
         const days = parseInt(updates.retentionDays, 10);
         if (days >= 1 && days <= 365) {
           config.recording.retentionDays = days;
-          recorder.updateConfig({ retentionDays: days });
+          recordingUpdates.retentionDays = days;
           cleanup.updateConfig({ retentionDays: days });
         }
       }
-
-      // Update recording enabled
       if (updates.recordingEnabled !== undefined) {
         config.recording.enabled = Boolean(updates.recordingEnabled);
-        recorder.updateConfig({ enabled: config.recording.enabled });
+        recordingUpdates.enabled = config.recording.enabled;
       }
+
+      // Apply updates to components
+      if (Object.keys(cameraUpdates).length > 0) {
+        camera.updateConfig(cameraUpdates);
+        recorder.updateCameraConfig(cameraUpdates);
+      }
+
+      const hasWatermarkUpdates = Object.keys(watermarkUpdates).length > 0;
+      recorder.updateConfig(recordingUpdates, hasWatermarkUpdates ? watermarkUpdates : null);
 
       // Save config to file
       const configPath = path.join(__dirname, '../config.json');
       writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-      res.json({ success: true, config });
+      res.json({ success: true, config, restarting: cameraChanged });
     } catch (err) {
+      console.error('Config update error:', err);
       res.status(500).json({ error: 'Failed to update config' });
     }
   });

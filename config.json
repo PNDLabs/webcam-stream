@@ -1,7 +1,7 @@
 {
   "camera": {
-    "device": "/dev/video2",
-    "resolution": "1280x720",
+    "device": "/dev/video4",
+    "resolution": "768x432",
     "framerate": 15
   },
   "recording": {

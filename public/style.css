@@ -148,6 +148,76 @@ button:active {
   background: #1d4ed8;
 }
 
+.config-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+}
+
+.tab-btn {
+  background: transparent;
+  color: #888;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.tab-btn.active {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.config-tab {
+  display: none;
+}
+
+.config-tab.active {
+  display: block;
+}
+
+.config-tab h3 {
+  margin-bottom: 15px;
+}
+
+.config-note {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+}
+
+.config-actions {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #333;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.save-btn {
+  background: #10b981;
+}
+
+.save-btn:hover {
+  background: #059669;
+}
+
+#saveStatus {
+  color: #10b981;
+  font-size: 0.9rem;
+}
+
 .config-form {
   display: flex;
   flex-direction: column;
@@ -165,13 +235,27 @@ button:active {
   color: #aaa;
 }
 
-input[type="number"] {
+input[type="number"],
+input[type="text"],
+select {
   background: #1a1a2e;
   border: 1px solid #333;
   color: #fff;
   padding: 8px 12px;
   border-radius: 4px;
+}
+
+input[type="number"] {
   width: 80px;
+}
+
+input[type="text"] {
+  width: 150px;
+}
+
+select {
+  min-width: 150px;
+  cursor: pointer;
 }
 
 input[type="checkbox"] {

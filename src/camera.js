@@ -145,6 +145,21 @@ class Camera extends EventEmitter {
       framerate: this.config.framerate
     };
   }
+
+  updateConfig(newConfig) {
+    const needsRestart =
+      newConfig.device !== undefined && newConfig.device !== this.config.device ||
+      newConfig.resolution !== undefined && newConfig.resolution !== this.config.resolution ||
+      newConfig.framerate !== undefined && newConfig.framerate !== this.config.framerate;
+
+    this.config = { ...this.config, ...newConfig };
+
+    if (needsRestart && this.isRunning) {
+      console.log('Camera config changed, restarting...');
+      this.stop();
+      setTimeout(() => this.start(), 1000);
+    }
+  }
 }
 
 export default Camera;

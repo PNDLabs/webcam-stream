@@ -35,17 +35,100 @@
 
       <section class="config-section">
         <h2>Configuration</h2>
-        <div class="config-form">
-          <div class="form-group">
-            <label for="retentionDays">Retention (days):</label>
-            <input type="number" id="retentionDays" min="1" max="365" value="7">
-            <button onclick="saveConfig()">Save</button>
+        <div class="config-tabs">
+          <button class="tab-btn active" onclick="showConfigTab('camera')">Camera</button>
+          <button class="tab-btn" onclick="showConfigTab('recording')">Recording</button>
+          <button class="tab-btn" onclick="showConfigTab('watermark')">Watermark</button>
+        </div>
+
+        <div id="cameraConfig" class="config-tab active">
+          <h3>Camera Settings</h3>
+          <div class="config-form">
+            <div class="form-group">
+              <label for="cameraDevice">Device:</label>
+              <input type="text" id="cameraDevice" placeholder="/dev/video0">
+            </div>
+            <div class="form-group">
+              <label for="cameraResolution">Resolution:</label>
+              <select id="cameraResolution">
+                <option value="640x480">640x480</option>
+                <option value="768x432">768x432</option>
+                <option value="800x600">800x600</option>
+                <option value="1280x720">1280x720 (720p)</option>
+                <option value="1920x1080">1920x1080 (1080p)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="cameraFramerate">Framerate:</label>
+              <input type="number" id="cameraFramerate" min="1" max="60" value="15">
+            </div>
           </div>
-          <div class="form-group">
-            <label for="recordingEnabled">Auto Recording:</label>
-            <input type="checkbox" id="recordingEnabled" checked>
+          <p class="config-note">Camera changes will briefly interrupt the stream.</p>
+        </div>
+
+        <div id="recordingConfig" class="config-tab">
+          <h3>Recording Settings</h3>
+          <div class="config-form">
+            <div class="form-group">
+              <label for="recordingEnabled">Auto Recording:</label>
+              <input type="checkbox" id="recordingEnabled" checked>
+            </div>
+            <div class="form-group">
+              <label for="retentionDays">Retention (days):</label>
+              <input type="number" id="retentionDays" min="1" max="365" value="7">
+            </div>
+            <div class="form-group">
+              <label for="segmentDuration">Segment Duration:</label>
+              <select id="segmentDuration">
+                <option value="900">15 minutes</option>
+                <option value="1800">30 minutes</option>
+                <option value="3600">1 hour</option>
+                <option value="7200">2 hours</option>
+                <option value="14400">4 hours</option>
+              </select>
+            </div>
           </div>
         </div>
+
+        <div id="watermarkConfig" class="config-tab">
+          <h3>Watermark Settings</h3>
+          <div class="config-form">
+            <div class="form-group">
+              <label for="watermarkEnabled">Enable Watermark:</label>
+              <input type="checkbox" id="watermarkEnabled" checked>
+            </div>
+            <div class="form-group">
+              <label for="watermarkPosition">Position:</label>
+              <select id="watermarkPosition">
+                <option value="top-left">Top Left</option>
+                <option value="top-right">Top Right</option>
+                <option value="bottom-left">Bottom Left</option>
+                <option value="bottom-right">Bottom Right</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="watermarkFontSize">Font Size:</label>
+              <input type="number" id="watermarkFontSize" min="8" max="72" value="24">
+            </div>
+            <div class="form-group">
+              <label for="watermarkFontColor">Font Color:</label>
+              <select id="watermarkFontColor">
+                <option value="white">White</option>
+                <option value="black">Black</option>
+                <option value="yellow">Yellow</option>
+                <option value="red">Red</option>
+                <option value="green">Green</option>
+              </select>
+            </div>
+          </div>
+          <p class="config-note">Watermark changes apply to new recording segments.</p>
+        </div>
+
+        <div class="config-actions">
+          <button onclick="saveConfig()" class="save-btn">Save All Settings</button>
+          <span id="saveStatus"></span>
+        </div>
+
         <div class="storage-info">
           <h3>Storage</h3>
           <p id="storageStats">Loading...</p>

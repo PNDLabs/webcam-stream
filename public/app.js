@@ -60,34 +60,93 @@ async function loadConfig() {
     const response = await fetch('/api/config');
     const config = await response.json();
 
+    // Camera settings
+    document.getElementById('cameraDevice').value = config.camera.device;
+    document.getElementById('cameraResolution').value = config.camera.resolution;
+    document.getElementById('cameraFramerate').value = config.camera.framerate;
+
+    // Recording settings
     document.getElementById('retentionDays').value = config.recording.retentionDays;
     document.getElementById('recordingEnabled').checked = config.recording.enabled;
+    document.getElementById('segmentDuration').value = config.recording.segmentDuration;
+
+    // Watermark settings
+    document.getElementById('watermarkEnabled').checked = config.watermark.enabled;
+    document.getElementById('watermarkPosition').value = config.watermark.position;
+    document.getElementById('watermarkFontSize').value = config.watermark.fontSize;
+    document.getElementById('watermarkFontColor').value = config.watermark.fontColor;
   } catch (err) {
     console.error('Failed to load config:', err);
   }
 }
 
 async function saveConfig() {
-  const retentionDays = parseInt(document.getElementById('retentionDays').value, 10);
-  const recordingEnabled = document.getElementById('recordingEnabled').checked;
+  const saveStatus = document.getElementById('saveStatus');
+  saveStatus.textContent = 'Saving...';
+
+  const configUpdate = {
+    camera: {
+      device: document.getElementById('cameraDevice').value,
+      resolution: document.getElementById('cameraResolution').value,
+      framerate: parseInt(document.getElementById('cameraFramerate').value, 10)
+    },
+    recording: {
+      enabled: document.getElementById('recordingEnabled').checked,
+      retentionDays: parseInt(document.getElementById('retentionDays').value, 10),
+      segmentDuration: parseInt(document.getElementById('segmentDuration').value, 10)
+    },
+    watermark: {
+      enabled: document.getElementById('watermarkEnabled').checked,
+      position: document.getElementById('watermarkPosition').value,
+      fontSize: parseInt(document.getElementById('watermarkFontSize').value, 10),
+      fontColor: document.getElementById('watermarkFontColor').value
+    }
+  };
 
   try {
     const response = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ retentionDays, recordingEnabled })
+      body: JSON.stringify(configUpdate)
     });
 
     if (response.ok) {
-      alert('Configuration saved!');
+      const result = await response.json();
+      saveStatus.textContent = 'Saved!';
+      setTimeout(() => { saveStatus.textContent = ''; }, 2000);
+
+      if (result.restarting) {
+        saveStatus.textContent = 'Camera restarting...';
+        setTimeout(() => {
+          reconnectStream();
+          saveStatus.textContent = '';
+        }, 2000);
+      }
+
       refreshStatus();
     } else {
-      alert('Failed to save configuration');
+      saveStatus.textContent = 'Failed to save';
+      setTimeout(() => { saveStatus.textContent = ''; }, 3000);
     }
   } catch (err) {
     console.error('Failed to save config:', err);
-    alert('Failed to save configuration');
+    saveStatus.textContent = 'Error saving config';
+    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
   }
+}
+
+function showConfigTab(tabName) {
+  // Hide all tabs
+  document.querySelectorAll('.config-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  // Show selected tab
+  document.getElementById(tabName + 'Config').classList.add('active');
+  event.target.classList.add('active');
 }
 
 async function loadRecordings() {
