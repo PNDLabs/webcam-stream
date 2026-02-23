@@ -64,6 +64,7 @@ async function loadConfig() {
     document.getElementById('cameraDevice').value = config.camera.device;
     document.getElementById('cameraResolution').value = config.camera.resolution;
     document.getElementById('cameraFramerate').value = config.camera.framerate;
+    document.getElementById('cameraRotation').value = config.camera.rotation || 0;
 
     // Recording settings
     document.getElementById('retentionDays').value = config.recording.retentionDays;
@@ -88,7 +89,8 @@ async function saveConfig() {
     camera: {
       device: document.getElementById('cameraDevice').value,
       resolution: document.getElementById('cameraResolution').value,
-      framerate: parseInt(document.getElementById('cameraFramerate').value, 10)
+      framerate: parseInt(document.getElementById('cameraFramerate').value, 10),
+      rotation: parseInt(document.getElementById('cameraRotation').value, 10)
     },
     recording: {
       enabled: document.getElementById('recordingEnabled').checked,

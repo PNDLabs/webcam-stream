@@ -11,13 +11,26 @@ class Camera extends EventEmitter {
     this.isRunning = false;
   }
 
+  getRotationFilter() {
+    const rotation = this.config.rotation || 0;
+    console.log(`Camera rotation set to ${rotation} degrees`);
+    switch (rotation) {
+      case 90:
+        return 'transpose=1';  // 90° clockwise
+      case 180:
+        return 'transpose=1,transpose=1';  // 180°
+      case 270:
+        return 'transpose=2';  // 270° clockwise (90° counter-clockwise)
+      default:
+        return null;  // No rotation
+    }
+  }
+
   start() {
     if (this.isRunning) {
       console.log('Camera already running');
       return;
     }
-
-    const [width, height] = this.config.resolution.split('x');
 
     const args = [
       '-f', 'v4l2',
@@ -25,11 +38,20 @@ class Camera extends EventEmitter {
       '-framerate', String(this.config.framerate),
       '-video_size', this.config.resolution,
       '-i', this.config.device,
+    ];
+
+    // Add rotation filter if configured
+    const rotationFilter = this.getRotationFilter();
+    if (rotationFilter) {
+      args.push('-vf', rotationFilter);
+    }
+
+    args.push(
       '-f', 'mjpeg',
       '-q:v', '5',
       '-r', String(this.config.framerate),
       'pipe:1'
-    ];
+    );
 
     console.log(`Starting camera: ffmpeg ${args.join(' ')}`);
 
@@ -142,7 +164,8 @@ class Camera extends EventEmitter {
       clients: this.clients.size,
       device: this.config.device,
       resolution: this.config.resolution,
-      framerate: this.config.framerate
+      framerate: this.config.framerate,
+      rotation: this.config.rotation || 0
     };
   }
 
@@ -150,7 +173,8 @@ class Camera extends EventEmitter {
     const needsRestart =
       newConfig.device !== undefined && newConfig.device !== this.config.device ||
       newConfig.resolution !== undefined && newConfig.resolution !== this.config.resolution ||
-      newConfig.framerate !== undefined && newConfig.framerate !== this.config.framerate;
+      newConfig.framerate !== undefined && newConfig.framerate !== this.config.framerate ||
+      newConfig.rotation !== undefined && newConfig.rotation !== this.config.rotation;
 
     this.config = { ...this.config, ...newConfig };
 

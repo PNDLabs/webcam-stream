@@ -136,6 +136,14 @@ function createServer(camera, recorder, cleanup, config) {
             cameraChanged = true;
           }
         }
+        if (updates.camera.rotation !== undefined) {
+          const rotation = parseInt(updates.camera.rotation, 10);
+          if ([0, 90, 180, 270].includes(rotation)) {
+            config.camera.rotation = rotation;
+            cameraUpdates.rotation = rotation;
+            cameraChanged = true;
+          }
+        }
       }
 
       // Recording settings

@@ -1,13 +1,14 @@
 {
   "camera": {
-    "device": "/dev/video4",
-    "resolution": "768x432",
-    "framerate": 15
+    "device": "/dev/video2",
+    "resolution": "1280x720",
+    "framerate": 1,
+    "rotation": 0
   },
   "recording": {
     "enabled": true,
-    "segmentDuration": 3600,
-    "retentionDays": 7,
+    "segmentDuration": 1800,
+    "retentionDays": 2,
     "outputDir": "./recordings"
   },
   "watermark": {

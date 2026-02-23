@@ -7,8 +7,7 @@ services:
       - "8081:8081"
     devices:
       - /dev/video2:/dev/video2
-      - /dev/video5:/dev/video5
-      - /dev/video4:/dev/video4
+      - /dev/video3:/dev/video3
     volumes:
       - ./recordings:/app/recordings
       - ./config.json:/app/config.json
