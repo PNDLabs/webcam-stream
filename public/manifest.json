@@ -1,0 +1,36 @@
+{
+  "name": "WebCam Stream",
+  "short_name": "CamStream",
+  "description": "Live webcam streaming and security camera dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "orientation": "any",
+  "lang": "en",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Stream",
+      "short_name": "Stream",
+      "url": "/?tab=stream",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Recordings",
+      "short_name": "Recordings",
+      "url": "/?tab=recordings",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    }
+  ],
+  "categories": ["utilities", "photo"],
+  "prefer_related_applications": false
+}

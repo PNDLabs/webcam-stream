@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#1a1a2e"/>
+  <!-- Camera body -->
+  <rect x="52" y="156" width="304" height="212" rx="28" fill="#e94560"/>
+  <!-- Viewfinder bump -->
+  <rect x="168" y="120" width="88" height="40" rx="14" fill="#e94560"/>
+  <!-- Camera lens outer ring -->
+  <circle cx="204" cy="262" r="88" fill="#0f3460"/>
+  <!-- Lens inner -->
+  <circle cx="204" cy="262" r="66" fill="#1a1a2e"/>
+  <!-- Lens aperture -->
+  <circle cx="204" cy="262" r="40" fill="#16213e"/>
+  <!-- Lens reflection -->
+  <circle cx="186" cy="244" r="14" fill="rgba(255,255,255,0.18)"/>
+  <!-- Flash dot -->
+  <circle cx="322" cy="192" r="18" fill="white" opacity="0.85"/>
+  <!-- Video side piece -->
+  <path d="M356 200 L460 164 L460 360 L356 324 Z" fill="#c73652"/>
+  <!-- Signal arcs -->
+  <path d="M408 136 Q448 184 408 232" stroke="white" stroke-width="12" fill="none" opacity="0.5" stroke-linecap="round"/>
+  <path d="M428 116 Q484 184 428 252" stroke="white" stroke-width="12" fill="none" opacity="0.25" stroke-linecap="round"/>
+</svg>

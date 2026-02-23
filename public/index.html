@@ -2,174 +2,332 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Camera</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="description" content="Live webcam streaming and security camera management">
+
+  <!-- PWA / Mobile -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CamStream">
+  <link rel="apple-touch-icon" href="/icons/icon.svg">
+  <link rel="manifest" href="/manifest.json">
+
+  <title>CamStream</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Security Camera</h1>
-      <div class="status-bar">
-        <span id="cameraStatus" class="status-badge offline">Camera: Offline</span>
-        <span id="recordingStatus" class="status-badge offline">Recording: Off</span>
-        <span id="clientCount">Viewers: 0</span>
-      </div>
-    </header>
 
-    <main>
-      <section class="video-section">
-        <div class="video-container">
-          <img id="liveStream" src="/stream" alt="Live Stream">
-          <div id="streamError" class="stream-error hidden">
-            <p>Stream unavailable</p>
-            <button onclick="reconnectStream()">Reconnect</button>
-          </div>
-        </div>
-        <div class="video-controls">
-          <button id="snapshotBtn" onclick="takeSnapshot()">Take Snapshot</button>
-          <button id="toggleRecording" onclick="toggleRecording()">Toggle Recording</button>
-          <button onclick="refreshStatus()">Refresh Status</button>
-        </div>
-      </section>
+  <!-- ── Header ────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-brand">
+      <svg class="brand-logo" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="1" y="6" width="15" height="12" rx="2" fill="#e94560"/>
+        <path d="M23 8l-7 4 7 4V8z" fill="#e94560"/>
+        <circle cx="8.5" cy="12" r="3" fill="#1a1a2e"/>
+        <circle cx="8.5" cy="12" r="1.5" fill="#0f3460"/>
+      </svg>
+      <span class="brand-name">CamStream</span>
+    </div>
 
-      <section class="config-section">
-        <h2>Configuration</h2>
-        <div class="config-tabs">
-          <button class="tab-btn active" onclick="showConfigTab('camera')">Camera</button>
-          <button class="tab-btn" onclick="showConfigTab('recording')">Recording</button>
-          <button class="tab-btn" onclick="showConfigTab('watermark')">Watermark</button>
-        </div>
+    <div class="header-status">
+      <span id="cameraStatus" class="status-dot status-offline" title="Camera status"></span>
+      <span id="recordingStatus" class="status-dot status-offline" title="Recording status"></span>
+      <span class="viewer-count">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+        <span id="viewerNum">0</span>
+      </span>
+    </div>
 
-        <div id="cameraConfig" class="config-tab active">
-          <h3>Camera Settings</h3>
-          <div class="config-form">
-            <div class="form-group">
-              <label for="cameraDevice">Device:</label>
-              <input type="text" id="cameraDevice" placeholder="/dev/video0">
-            </div>
-            <div class="form-group">
-              <label for="cameraResolution">Resolution:</label>
-              <select id="cameraResolution">
-                <option value="640x480">640x480 (480p)</option>
-                <option value="768x432">768x432</option>
-                <option value="800x600">800x600</option>
-                <option value="960x540">960x540 (540p)</option>
-                <option value="1280x720">1280x720 (720p)</option>
-                <option value="1920x1080">1920x1080 (1080p)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="cameraFramerate">Framerate:</label>
-              <input type="number" id="cameraFramerate" min="1" max="60" value="15">
-            </div>
-            <div class="form-group">
-              <label for="cameraRotation">Rotation:</label>
-              <select id="cameraRotation">
-                <option value="0">None</option>
-                <option value="90">90° Clockwise</option>
-                <option value="180">180°</option>
-                <option value="270">270° Clockwise</option>
-              </select>
-            </div>
-          </div>
-          <p class="config-note">Camera changes will briefly interrupt the stream.</p>
-        </div>
+    <button id="installBtn" class="install-btn hidden" onclick="installApp()" aria-label="Install app">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Install
+    </button>
+  </header>
 
-        <div id="recordingConfig" class="config-tab">
-          <h3>Recording Settings</h3>
-          <div class="config-form">
-            <div class="form-group">
-              <label for="recordingEnabled">Auto Recording:</label>
-              <input type="checkbox" id="recordingEnabled" checked>
-            </div>
-            <div class="form-group">
-              <label for="retentionDays">Retention (days):</label>
-              <input type="number" id="retentionDays" min="1" max="365" value="7">
-            </div>
-            <div class="form-group">
-              <label for="segmentDuration">Segment Duration:</label>
-              <select id="segmentDuration">
-                <option value="900">15 minutes</option>
-                <option value="1800">30 minutes</option>
-                <option value="3600">1 hour</option>
-                <option value="7200">2 hours</option>
-                <option value="14400">4 hours</option>
-              </select>
-            </div>
-          </div>
-        </div>
+  <!-- ── Tab Navigation ────────────────────────────────── -->
+  <nav class="app-nav" role="navigation" aria-label="Main navigation">
+    <button class="nav-btn active" id="nav-stream" onclick="switchTab('stream', this)" aria-current="page">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M23 7l-7 5 7 5V7z"/>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+      </svg>
+      <span>Stream</span>
+    </button>
+    <button class="nav-btn" id="nav-recordings" onclick="switchTab('recordings', this)">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="2" width="20" height="20" rx="2" ry="2"/>
+        <line x1="7" y1="2" x2="7" y2="22"/>
+        <line x1="17" y1="2" x2="17" y2="22"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <line x1="2" y1="7" x2="7" y2="7"/>
+        <line x1="2" y1="17" x2="7" y2="17"/>
+        <line x1="17" y1="17" x2="22" y2="17"/>
+        <line x1="17" y1="7" x2="22" y2="7"/>
+      </svg>
+      <span>Recordings</span>
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="switchTab('settings', this)">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+      <span>Settings</span>
+    </button>
+  </nav>
 
-        <div id="watermarkConfig" class="config-tab">
-          <h3>Watermark Settings</h3>
-          <div class="config-form">
-            <div class="form-group">
-              <label for="watermarkEnabled">Enable Watermark:</label>
-              <input type="checkbox" id="watermarkEnabled" checked>
-            </div>
-            <div class="form-group">
-              <label for="watermarkPosition">Position:</label>
-              <select id="watermarkPosition">
-                <option value="top-left">Top Left</option>
-                <option value="top-right">Top Right</option>
-                <option value="bottom-left">Bottom Left</option>
-                <option value="bottom-right">Bottom Right</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="watermarkFontSize">Font Size:</label>
-              <input type="number" id="watermarkFontSize" min="8" max="72" value="24">
-            </div>
-            <div class="form-group">
-              <label for="watermarkFontColor">Font Color:</label>
-              <select id="watermarkFontColor">
-                <option value="white">White</option>
-                <option value="black">Black</option>
-                <option value="yellow">Yellow</option>
-                <option value="red">Red</option>
-                <option value="green">Green</option>
-              </select>
-            </div>
-          </div>
-          <p class="config-note">Watermark changes apply to new recording segments.</p>
-        </div>
-
-        <div class="config-actions">
-          <button onclick="saveConfig()" class="save-btn">Save All Settings</button>
-          <span id="saveStatus"></span>
-        </div>
-
-        <div class="storage-info">
-          <h3>Storage</h3>
-          <p id="storageStats">Loading...</p>
-        </div>
-      </section>
-
-      <section class="recordings-section">
-        <h2>Recordings</h2>
-        <div class="recordings-controls">
-          <button onclick="loadRecordings()">Refresh</button>
-          <button onclick="runCleanup()">Run Cleanup</button>
-        </div>
-        <div id="recordingsList" class="recordings-list">
-          <p>Loading recordings...</p>
-        </div>
-      </section>
-
-      <section class="playback-section hidden" id="playbackSection">
-        <h2>Playback</h2>
-        <div class="playback-container">
-          <video id="playbackVideo" controls></video>
-          <button onclick="closePlayback()">Close</button>
-        </div>
-      </section>
-    </main>
-
-    <footer>
-      <p>Home Assistant Integration: <code>http://&lt;IP&gt;:8080/stream</code></p>
-    </footer>
+  <!-- ── Offline Banner ─────────────────────────────────── -->
+  <div id="offlineBanner" class="offline-banner hidden" role="alert">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <line x1="1" y1="1" x2="23" y2="23"/>
+      <path d="M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0"/>
+      <line x1="12" y1="20" x2="12.01" y2="20"/>
+    </svg>
+    Offline — live stream unavailable
   </div>
 
-  <script src="app.js"></script>
+  <!-- ── Main Content ───────────────────────────────────── -->
+  <main class="app-main">
+
+    <!-- Stream Tab -->
+    <section id="tab-stream" class="tab-panel active" aria-label="Live Stream">
+      <div class="stream-wrapper">
+
+        <div class="video-box" id="videoBox">
+          <img id="liveStream" src="/stream" alt="Live camera stream">
+          <div id="streamError" class="stream-overlay hidden">
+            <div class="stream-overlay-inner">
+              <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+                <path d="M23 7l-7 5 7 5V7z"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                <line x1="1" y1="1" x2="23" y2="23" stroke="#e94560" stroke-width="2"/>
+              </svg>
+              <p>Stream unavailable</p>
+              <button class="btn btn-primary" onclick="reconnectStream()">Reconnect</button>
+            </div>
+          </div>
+          <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" aria-label="Toggle fullscreen">
+            <svg id="fullscreenIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="stream-controls">
+          <button class="ctrl-btn" onclick="takeSnapshot()" aria-label="Take snapshot">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>Snapshot</span>
+          </button>
+          <button class="ctrl-btn ctrl-btn-record" id="recordBtn" onclick="toggleRecording()" aria-label="Toggle recording">
+            <svg id="recordIcon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="4" fill="currentColor"/>
+            </svg>
+            <span id="recordLabel">Record</span>
+          </button>
+          <button class="ctrl-btn" onclick="reconnectStream()" aria-label="Refresh stream">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        <div class="storage-card">
+          <div class="storage-row">
+            <span class="storage-label">Storage</span>
+            <span id="storageText" class="storage-value">--</span>
+          </div>
+          <div class="storage-track">
+            <div class="storage-fill" id="storageBarFill" style="width:0%"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Recordings Tab -->
+    <section id="tab-recordings" class="tab-panel" aria-label="Recordings">
+
+      <div class="recordings-toolbar">
+        <span id="recordingStorageText" class="toolbar-info">Loading...</span>
+        <div class="toolbar-actions">
+          <button class="btn btn-sm btn-ghost" onclick="loadRecordings()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+            </svg>
+            Refresh
+          </button>
+          <button class="btn btn-sm btn-danger-ghost" onclick="runCleanup()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+            </svg>
+            Cleanup
+          </button>
+        </div>
+      </div>
+
+      <div id="playbackSection" class="playback-section hidden">
+        <div class="playback-header">
+          <button class="btn-back" onclick="closePlayback()">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back
+          </button>
+          <span class="playback-title" id="playbackTitle">Recording</span>
+        </div>
+        <video id="playbackVideo" controls playsinline class="playback-video">
+          Video playback not supported.
+        </video>
+      </div>
+
+      <div id="recordingsList" class="recordings-list">
+        <div class="list-placeholder">Loading recordings...</div>
+      </div>
+
+    </section>
+
+    <!-- Settings Tab -->
+    <section id="tab-settings" class="tab-panel" aria-label="Settings">
+      <div class="settings-inner">
+
+        <div class="config-tabs-row" role="tablist">
+          <button class="config-tab-btn active" role="tab" aria-selected="true" onclick="showConfigTab('camera', this)">Camera</button>
+          <button class="config-tab-btn" role="tab" aria-selected="false" onclick="showConfigTab('recording', this)">Recording</button>
+          <button class="config-tab-btn" role="tab" aria-selected="false" onclick="showConfigTab('watermark', this)">Watermark</button>
+        </div>
+
+        <!-- Camera Panel -->
+        <div id="cameraConfig" class="config-panel active" role="tabpanel">
+          <div class="form-field">
+            <label class="field-label" for="cameraDevice">Camera Device</label>
+            <input type="text" id="cameraDevice" class="field-input" placeholder="/dev/video0" autocomplete="off" inputmode="text">
+          </div>
+          <div class="form-field">
+            <label class="field-label" for="cameraResolution">Resolution</label>
+            <select id="cameraResolution" class="field-input">
+              <option value="640x480">640×480 (SD)</option>
+              <option value="768x432">768×432</option>
+              <option value="800x600">800×600</option>
+              <option value="960x540">960×540</option>
+              <option value="1280x720">1280×720 (HD)</option>
+              <option value="1920x1080">1920×1080 (Full HD)</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="field-label" for="cameraFramerate">Framerate (fps)</label>
+            <input type="number" id="cameraFramerate" class="field-input" min="1" max="60" inputmode="numeric">
+          </div>
+          <div class="form-field">
+            <label class="field-label">Rotation</label>
+            <div class="rotation-group" role="group" aria-label="Camera rotation">
+              <button type="button" class="rotation-btn active" onclick="selectRotation(0, this)">0°</button>
+              <button type="button" class="rotation-btn" onclick="selectRotation(90, this)">90°</button>
+              <button type="button" class="rotation-btn" onclick="selectRotation(180, this)">180°</button>
+              <button type="button" class="rotation-btn" onclick="selectRotation(270, this)">270°</button>
+            </div>
+            <input type="hidden" id="cameraRotation" value="0">
+          </div>
+          <p class="field-note">Camera changes will briefly interrupt the stream.</p>
+        </div>
+
+        <!-- Recording Panel -->
+        <div id="recordingConfig" class="config-panel" role="tabpanel">
+          <div class="form-field form-field-row">
+            <label class="field-label" for="recordingEnabled">Auto Recording</label>
+            <label class="toggle" aria-label="Auto recording">
+              <input type="checkbox" id="recordingEnabled" role="switch">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="form-field">
+            <label class="field-label" for="retentionDays">Retention (days)</label>
+            <input type="number" id="retentionDays" class="field-input" min="1" max="365" inputmode="numeric">
+          </div>
+          <div class="form-field">
+            <label class="field-label" for="segmentDuration">Segment Duration</label>
+            <select id="segmentDuration" class="field-input">
+              <option value="900">15 minutes</option>
+              <option value="1800">30 minutes</option>
+              <option value="3600">1 hour</option>
+              <option value="7200">2 hours</option>
+              <option value="14400">4 hours</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Watermark Panel -->
+        <div id="watermarkConfig" class="config-panel" role="tabpanel">
+          <div class="form-field form-field-row">
+            <label class="field-label" for="watermarkEnabled">Enable Watermark</label>
+            <label class="toggle" aria-label="Enable watermark">
+              <input type="checkbox" id="watermarkEnabled" role="switch">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="form-field">
+            <label class="field-label" for="watermarkPosition">Position</label>
+            <select id="watermarkPosition" class="field-input">
+              <option value="top-left">Top Left</option>
+              <option value="top-right">Top Right</option>
+              <option value="bottom-left">Bottom Left</option>
+              <option value="bottom-right">Bottom Right</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="field-label" for="watermarkFontSize">Font Size</label>
+            <input type="number" id="watermarkFontSize" class="field-input" min="8" max="72" inputmode="numeric">
+          </div>
+          <div class="form-field">
+            <label class="field-label" for="watermarkFontColor">Font Color</label>
+            <select id="watermarkFontColor" class="field-input">
+              <option value="white">White</option>
+              <option value="black">Black</option>
+              <option value="yellow">Yellow</option>
+              <option value="red">Red</option>
+              <option value="green">Green</option>
+            </select>
+          </div>
+          <p class="field-note">Watermark changes apply to new recording segments.</p>
+        </div>
+
+        <div class="settings-footer">
+          <button class="btn btn-primary btn-full" onclick="saveConfig()" id="saveBtn">Save Settings</button>
+          <span id="saveStatus" class="save-status" role="status" aria-live="polite"></span>
+        </div>
+
+        <div class="storage-detail">
+          <h3 class="storage-detail-title">Storage Details</h3>
+          <p id="storageStats" class="storage-detail-text">Loading...</p>
+        </div>
+
+        <div class="ha-info">
+          <h3 class="ha-info-title">Home Assistant</h3>
+          <p class="ha-info-text">Generic camera URL:</p>
+          <code class="ha-info-code" id="haUrl">http://&lt;IP&gt;:8081/stream</code>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/app.js"></script>
 </body>
 </html>
