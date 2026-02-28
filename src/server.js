@@ -272,6 +272,10 @@ function createServer(camera, recorder, cleanup, config) {
     }
   });
 
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
   return app;
 }
 
