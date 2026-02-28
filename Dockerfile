@@ -1,8 +1,8 @@
 FROM node:20-slim
 
-# Install FFmpeg and timezone data
+# Install FFmpeg, timezone data, and curl
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg tzdata && \
+    apt-get install -y --no-install-recommends ffmpeg tzdata curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
