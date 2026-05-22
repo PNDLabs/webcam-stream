@@ -231,6 +231,11 @@ async function loadConfig() {
     document.getElementById('watermarkFontSize').value  = cfg.watermark.fontSize  || 24;
     document.getElementById('watermarkFontColor').value = cfg.watermark.fontColor || 'white';
 
+    // Audio
+    const audio = cfg.audio || {};
+    document.getElementById('audioEnabled').checked = audio.enabled === true;
+    document.getElementById('audioDevice').value    = audio.device || 'hw:0,0';
+
   } catch (err) {
     console.error('Failed to load config:', err);
   }
@@ -261,6 +266,10 @@ async function saveConfig() {
       position:  document.getElementById('watermarkPosition').value,
       fontSize:  parseInt(document.getElementById('watermarkFontSize').value, 10),
       fontColor: document.getElementById('watermarkFontColor').value
+    },
+    audio: {
+      enabled: document.getElementById('audioEnabled').checked,
+      device:  document.getElementById('audioDevice').value.trim() || 'hw:0,0'
     }
   };
 

@@ -3,10 +3,11 @@ import { existsSync, mkdirSync } from 'fs';
 import path from 'path';
 
 class Recorder {
-  constructor(config, cameraConfig, watermarkConfig = {}) {
+  constructor(config, cameraConfig, watermarkConfig = {}, audioConfig = {}) {
     this.config = config;
     this.cameraConfig = cameraConfig;
     this.watermarkConfig = watermarkConfig;
+    this.audioConfig = audioConfig;
     this.process = null;
     this.isRecording = false;
     this.currentFile = null;
@@ -99,7 +100,13 @@ class Recorder {
 
     // FFmpeg receives MJPEG frames via stdin and outputs MP4
     const watermarkFilter = this.buildWatermarkFilter();
+    const audioEnabled = this.audioConfig && this.audioConfig.enabled;
+    const audioDevice = (this.audioConfig && this.audioConfig.device) || 'hw:0,0';
+
     const args = [
+      // Audio input (captured directly from ALSA before video so it starts first)
+      ...(audioEnabled ? ['-f', 'alsa', '-thread_queue_size', '512', '-i', audioDevice] : []),
+      // Video input from stdin (MJPEG frames)
       '-f', 'mjpeg',
       '-framerate', String(this.cameraConfig.framerate),
       '-i', 'pipe:0',
@@ -109,6 +116,7 @@ class Recorder {
       '-preset', 'ultrafast',
       '-tune', 'zerolatency',
       '-crf', '23',
+      ...(audioEnabled ? ['-c:a', 'aac', '-b:a', '128k'] : []),
       '-movflags', '+faststart',
       '-t', String(this.config.segmentDuration),
       '-y',
@@ -219,13 +227,17 @@ class Recorder {
     };
   }
 
-  updateConfig(newConfig, watermarkConfig = null) {
+  updateConfig(newConfig, watermarkConfig = null, audioConfig = null) {
     const wasEnabled = this.config.enabled;
     const wasRecording = this.isRecording;
 
     // Check if watermark config changed
     const watermarkChanged = watermarkConfig !== null &&
       JSON.stringify(this.watermarkConfig) !== JSON.stringify({ ...this.watermarkConfig, ...watermarkConfig });
+
+    // Check if audio config changed
+    const audioChanged = audioConfig !== null &&
+      JSON.stringify(this.audioConfig) !== JSON.stringify({ ...this.audioConfig, ...audioConfig });
 
     // Check if segment duration changed
     const segmentDurationChanged = newConfig.segmentDuration !== undefined &&
@@ -237,16 +249,24 @@ class Recorder {
       this.watermarkConfig = { ...this.watermarkConfig, ...watermarkConfig };
     }
 
+    if (audioConfig !== null) {
+      this.audioConfig = { ...this.audioConfig, ...audioConfig };
+    }
+
     if (wasEnabled && !this.config.enabled) {
       this.stop();
     } else if (!wasEnabled && this.config.enabled && this.camera) {
       this.start(this.camera);
-    } else if (wasRecording && (watermarkChanged || segmentDurationChanged)) {
-      // Restart current segment to apply watermark or duration changes
+    } else if (wasRecording && (watermarkChanged || segmentDurationChanged || audioChanged)) {
+      // Restart current segment to apply config changes
       console.log('Recording config changed, restarting segment...');
       this.stopCurrentSegment();
       setTimeout(() => this.startSegment(), 1000);
     }
+  }
+
+  updateAudioConfig(audioConfig) {
+    this.audioConfig = { ...this.audioConfig, ...audioConfig };
   }
 
   updateCameraConfig(cameraConfig) {

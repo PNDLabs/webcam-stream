@@ -270,6 +270,18 @@
               <option value="14400">4 hours</option>
             </select>
           </div>
+          <div class="form-field form-field-row">
+            <label class="field-label" for="audioEnabled">Record Audio</label>
+            <label class="toggle" aria-label="Record audio">
+              <input type="checkbox" id="audioEnabled" role="switch">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="form-field">
+            <label class="field-label" for="audioDevice">Audio Device (ALSA)</label>
+            <input type="text" id="audioDevice" class="field-input" placeholder="hw:0,0" autocomplete="off" inputmode="text">
+          </div>
+          <p class="field-note">Audio changes apply to new recording segments. Use <code>arecord -l</code> to list devices.</p>
         </div>
 
         <!-- Watermark Panel -->

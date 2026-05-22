@@ -113,6 +113,7 @@ function createServer(camera, recorder, cleanup, config) {
       const updates = req.body;
       const recordingUpdates = {};
       const watermarkUpdates = {};
+      const audioUpdates = {};
       const cameraUpdates = {};
       let cameraChanged = false;
 
@@ -166,6 +167,19 @@ function createServer(camera, recorder, cleanup, config) {
             config.recording.segmentDuration = duration;
             recordingUpdates.segmentDuration = duration;
           }
+        }
+      }
+
+      // Audio settings
+      if (updates.audio) {
+        if (!config.audio) config.audio = {};
+        if (updates.audio.enabled !== undefined) {
+          config.audio.enabled = Boolean(updates.audio.enabled);
+          audioUpdates.enabled = config.audio.enabled;
+        }
+        if (updates.audio.device !== undefined) {
+          config.audio.device = updates.audio.device;
+          audioUpdates.device = updates.audio.device;
         }
       }
 
@@ -224,7 +238,12 @@ function createServer(camera, recorder, cleanup, config) {
       }
 
       const hasWatermarkUpdates = Object.keys(watermarkUpdates).length > 0;
-      recorder.updateConfig(recordingUpdates, hasWatermarkUpdates ? watermarkUpdates : null);
+      const hasAudioUpdates = Object.keys(audioUpdates).length > 0;
+      recorder.updateConfig(
+        recordingUpdates,
+        hasWatermarkUpdates ? watermarkUpdates : null,
+        hasAudioUpdates ? audioUpdates : null
+      );
 
       // Save config to file
       const configPath = path.join(__dirname, '../config.json');

@@ -31,10 +31,11 @@ console.log(`Resolution: ${config.camera.resolution} @ ${config.camera.framerate
 console.log(`Recording: ${config.recording.enabled ? 'Enabled' : 'Disabled'}`);
 console.log(`Retention: ${config.recording.retentionDays} days`);
 console.log(`Watermark: ${config.watermark?.enabled ? 'Enabled' : 'Disabled'}`);
+console.log(`Audio: ${config.audio?.enabled ? `Enabled (${config.audio.device})` : 'Disabled'}`);
 
 // Initialize components
 const camera = new Camera(config.camera);
-const recorder = new Recorder(config.recording, config.camera, config.watermark);
+const recorder = new Recorder(config.recording, config.camera, config.watermark, config.audio);
 const cleanup = new Cleanup(config.recording);
 
 // Create and start server
