@@ -8,11 +8,15 @@ services:
     devices:
       - /dev/video2:/dev/video2
       - /dev/video3:/dev/video3
+      - /dev/snd/pcmC1D0c:/dev/snd/pcmC1D0c
+      - /dev/snd/controlC1:/dev/snd/controlC1
     volumes:
       - ./recordings:/app/recordings
       - ./config.json:/app/config.json
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
+    group_add:
+      - audio
     environment:
       - NODE_ENV=production
     healthcheck:

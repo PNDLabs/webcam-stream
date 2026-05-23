@@ -20,8 +20,8 @@
     "backgroundColor": "black@0.5"
   },
   "audio": {
-    "enabled": false,
-    "device": "hw:0,0"
+    "enabled": true,
+    "device": "hw:1,0"
   },
   "server": {
     "port": 8081

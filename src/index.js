@@ -54,9 +54,6 @@ app.listen(PORT, () => {
   console.log(`    stream_source: "http://<IP>:${PORT}/stream"`);
 });
 
-// Start camera streaming
-camera.start();
-
 // Start recording once camera is running (pass camera for frame access)
 camera.once('started', () => {
   if (config.recording.enabled) {
@@ -64,6 +61,9 @@ camera.once('started', () => {
     setTimeout(() => recorder.start(camera), 2000);
   }
 });
+
+// Start camera streaming
+camera.start();
 
 // Start cleanup scheduler
 cleanup.start();
