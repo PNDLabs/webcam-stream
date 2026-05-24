@@ -64,6 +64,8 @@ document.addEventListener('visibilitychange', async () => {
 
 /* ── Tab Navigation ──────────────────────────────────── */
 let activeTab = 'stream';
+let recordingsFilter = 'all';
+let currentPlaybackEvents = [];
 
 function switchTab(name, btn) {
   // Panels
@@ -335,7 +337,10 @@ async function loadRecordings() {
   list.innerHTML = '<div class="list-placeholder">Loading...</div>';
 
   try {
-    const res = await fetch('/api/recordings');
+    const query = recordingsFilter && recordingsFilter !== 'all'
+      ? `?filter=${encodeURIComponent(recordingsFilter)}`
+      : '';
+    const res = await fetch('/api/recordings' + query);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const recordings = await res.json();
 
@@ -350,6 +355,9 @@ async function loadRecordings() {
           <div>
             <div class="recording-name">${escapeHtml(rec.name)}</div>
             <div class="recording-meta">${rec.sizeMB} MB &mdash; ${formatDate(rec.created)}</div>
+            <div class="recording-activity">
+              ${buildActivityBadges(rec)}
+            </div>
           </div>
         </div>
         <div class="recording-actions">
@@ -375,6 +383,21 @@ async function loadRecordings() {
   }
 }
 
+function buildActivityBadges(recording) {
+  const badges = [];
+  if (recording.hasMotion) badges.push('<span class="activity-badge activity-badge-motion">Motion</span>');
+  if (recording.hasSound) badges.push('<span class="activity-badge activity-badge-sound">Sound</span>');
+  if (!badges.length) badges.push('<span class="activity-badge">No activity</span>');
+  return badges.join('');
+}
+
+function setRecordingFilter(filter, btn) {
+  recordingsFilter = filter;
+  document.querySelectorAll('.recording-filters .btn').forEach((b) => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  loadRecordings();
+}
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -392,23 +415,87 @@ function formatDate(iso) {
 }
 
 /* ── Playback ────────────────────────────────────────── */
-function playRecording(url, name) {
+async function playRecording(url, name) {
   const section = document.getElementById('playbackSection');
   const video   = document.getElementById('playbackVideo');
   const title   = document.getElementById('playbackTitle');
 
   title.textContent = name;
+  currentPlaybackEvents = await loadRecordingEvents(name);
+  renderTimelineMarkers();
+
+  video.onloadedmetadata = () => renderTimelineMarkers();
   video.src = url;
   section.classList.remove('hidden');
-  video.play();
+  video.play().catch(() => {});
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function closePlayback() {
   const video = document.getElementById('playbackVideo');
   video.pause();
+  video.onloadedmetadata = null;
   video.src = '';
+  currentPlaybackEvents = [];
+  renderTimelineMarkers();
   document.getElementById('playbackSection').classList.add('hidden');
+}
+
+async function loadRecordingEvents(recordingName) {
+  try {
+    const res = await fetch(`/api/recordings/${encodeURIComponent(recordingName)}/events`);
+    if (!res.ok) return [];
+    const payload = await res.json();
+    return Array.isArray(payload.events) ? payload.events : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function renderTimelineMarkers() {
+  const video = document.getElementById('playbackVideo');
+  const markerWrap = document.getElementById('timelineMarkersWrap');
+  const markerContainer = document.getElementById('timelineMarkers');
+  if (!markerWrap || !markerContainer) return;
+
+  markerContainer.innerHTML = '';
+
+  const duration = Number(video.duration);
+  if (!Number.isFinite(duration) || duration <= 0 || !currentPlaybackEvents.length) {
+    markerWrap.classList.add('hidden');
+    return;
+  }
+
+  const maxMarkers = 200;
+  const events = currentPlaybackEvents.slice(0, maxMarkers);
+  for (const event of events) {
+    const startSec = Number(event.startSec);
+    if (!Number.isFinite(startSec) || startSec < 0 || startSec > duration) continue;
+
+    const marker = document.createElement('button');
+    marker.className = `timeline-marker timeline-marker-${event.type === 'sound' ? 'sound' : 'motion'}`;
+    marker.style.left = `${(startSec / duration) * 100}%`;
+    marker.title = `${event.type || 'event'} at ${formatMarkerTime(startSec)}`;
+    marker.setAttribute('aria-label', marker.title);
+    marker.onclick = () => {
+      video.currentTime = startSec;
+      video.play().catch(() => {});
+    };
+    markerContainer.appendChild(marker);
+  }
+
+  markerWrap.classList.remove('hidden');
+}
+
+function formatMarkerTime(totalSeconds) {
+  const sec = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(sec / 60);
+  const seconds = String(sec % 60).padStart(2, '0');
+  const hours = Math.floor(minutes / 60);
+  if (hours > 0) {
+    return `${hours}:${String(minutes % 60).padStart(2, '0')}:${seconds}`;
+  }
+  return `${minutes}:${seconds}`;
 }
 
 function downloadRecording(url, name) {

@@ -25,6 +25,23 @@ try {
   process.exit(1);
 }
 
+if (!config.recording.eventDetection) {
+  config.recording.eventDetection = {};
+}
+
+config.recording.eventDetection = {
+  enabled: false,
+  motionEnabled: true,
+  soundEnabled: true,
+  motionThreshold: 0.12,
+  motionSampleIntervalMs: 500,
+  motionMinDurationMs: 800,
+  motionEndAfterMs: 1200,
+  soundSilenceDb: -40,
+  soundSilenceDurationSec: 0.6,
+  ...config.recording.eventDetection
+};
+
 console.log('Starting Webcam Security Camera...');
 console.log(`Camera device: ${config.camera.device}`);
 console.log(`Resolution: ${config.camera.resolution} @ ${config.camera.framerate} fps`);

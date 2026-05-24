@@ -9,7 +9,18 @@
     "enabled": true,
     "segmentDuration": 1800,
     "retentionDays": 2,
-    "outputDir": "./recordings"
+    "outputDir": "./recordings",
+    "eventDetection": {
+      "enabled": false,
+      "motionEnabled": true,
+      "soundEnabled": true,
+      "motionThreshold": 0.12,
+      "motionSampleIntervalMs": 500,
+      "motionMinDurationMs": 800,
+      "motionEndAfterMs": 1200,
+      "soundSilenceDb": -40,
+      "soundSilenceDurationSec": 0.6
+    }
   },
   "watermark": {
     "enabled": true,

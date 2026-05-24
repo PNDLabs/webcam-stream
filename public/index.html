@@ -165,6 +165,12 @@
       <div class="recordings-toolbar">
         <span id="recordingStorageText" class="toolbar-info">Loading...</span>
         <div class="toolbar-actions">
+          <div class="recording-filters" role="group" aria-label="Recording activity filters">
+            <button id="filterAll" class="btn btn-sm btn-ghost active" onclick="setRecordingFilter('all', this)">All</button>
+            <button id="filterMotion" class="btn btn-sm btn-ghost" onclick="setRecordingFilter('motion', this)">Motion</button>
+            <button id="filterSound" class="btn btn-sm btn-ghost" onclick="setRecordingFilter('sound', this)">Sound</button>
+            <button id="filterBoth" class="btn btn-sm btn-ghost" onclick="setRecordingFilter('both', this)">Both</button>
+          </div>
           <button class="btn btn-sm btn-ghost" onclick="loadRecordings()">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="23 4 23 10 17 10"/>
@@ -195,6 +201,9 @@
         <video id="playbackVideo" controls playsinline class="playback-video">
           Video playback not supported.
         </video>
+        <div id="timelineMarkersWrap" class="timeline-markers-wrap hidden">
+          <div id="timelineMarkers" class="timeline-markers"></div>
+        </div>
       </div>
 
       <div id="recordingsList" class="recordings-list">

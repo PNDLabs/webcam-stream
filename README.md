@@ -7,6 +7,7 @@ A USB webcam streaming and security camera application with loop recording capab
 - **Live MJPEG Streaming** - Stream camera feed to multiple clients simultaneously
 - **Snapshot Capture** - Capture and download individual frames on demand
 - **Continuous Recording** - Automatic hourly video segmentation (H.264/MP4)
+- **Activity Event Detection** - Optional motion and sound activity detection per recording
 - **Loop Recording** - Automatic cleanup of recordings older than configured retention period
 - **Storage Management** - Real-time monitoring and manual cleanup options
 - **Web Dashboard** - User-friendly interface for viewing, controlling, and managing recordings
@@ -72,7 +73,12 @@ Configuration is stored in `config.json` and can be modified at runtime via the 
     "enabled": true,
     "segmentDuration": 3600,
     "retentionDays": 7,
-    "outputDir": "./recordings"
+    "outputDir": "./recordings",
+    "eventDetection": {
+      "enabled": false,
+      "motionEnabled": true,
+      "soundEnabled": true
+    }
   },
   "server": {
     "port": 8081
@@ -91,6 +97,9 @@ Configuration is stored in `config.json` and can be modified at runtime via the 
 | `recording.segmentDuration` | Segment duration in seconds | `3600` (1 hour) |
 | `recording.retentionDays` | Days to keep recordings | `7` |
 | `recording.outputDir` | Recording storage path | `./recordings` |
+| `recording.eventDetection.enabled` | Enable motion/sound event detection | `false` |
+| `recording.eventDetection.motionEnabled` | Enable motion event detection | `true` |
+| `recording.eventDetection.soundEnabled` | Enable sound event detection | `true` |
 | `server.port` | HTTP server port | `8081` |
 
 ## Usage
@@ -107,6 +116,8 @@ Once running, access the application at:
 - Toggle recording on/off
 - Capture snapshots
 - Browse and playback recordings
+- Filter recordings by motion/sound activity
+- View activity markers on playback timeline
 - Download or delete recordings
 - Configure retention settings
 - View storage statistics
@@ -126,7 +137,8 @@ Once running, access the application at:
 |----------|--------|-------------|
 | `/api/status` | GET | Camera, recorder, and storage status |
 | `/api/config` | GET | Current configuration |
-| `/api/recordings` | GET | List all recordings with metadata |
+| `/api/recordings` | GET | List all recordings with metadata and activity flags |
+| `/api/recordings/:filename/events` | GET | Get activity event timeline for a recording |
 
 ### Management Endpoints
 

@@ -49,11 +49,44 @@ class Cleanup {
           if (stats.mtime.getTime() < cutoffTime) {
             totalSize += stats.size;
             unlinkSync(filePath);
+            const metadataPath = `${filePath}.events.json`;
+            try {
+              unlinkSync(metadataPath);
+            } catch (_) {
+              // ignore missing metadata sidecar
+            }
             deletedCount++;
             console.log(`Deleted old recording: ${file}`);
           }
         } catch (err) {
           console.error(`Error processing file ${file}:`, err.message);
+        }
+      }
+
+      // Remove stale/orphaned metadata sidecars
+      for (const file of files) {
+        if (!file.endsWith('.mp4.events.json')) continue;
+
+        const metadataPath = path.join(outputDir, file);
+        const recordingName = file.replace(/\.events\.json$/, '');
+        const recordingPath = path.join(outputDir, recordingName);
+
+        try {
+          const metadataStats = statSync(metadataPath);
+          const isOrphaned = (() => {
+            try {
+              statSync(recordingPath);
+              return false;
+            } catch (_) {
+              return true;
+            }
+          })();
+
+          if (isOrphaned || metadataStats.mtime.getTime() < cutoffTime) {
+            unlinkSync(metadataPath);
+          }
+        } catch (_) {
+          // Ignore inaccessible metadata files
         }
       }
 

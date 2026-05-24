@@ -399,6 +399,18 @@ body {
 .toolbar-info    { font-size: 0.78rem; color: var(--text-muted); }
 .toolbar-actions { display: flex; gap: 8px; }
 
+.recording-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.recording-filters .btn.active {
+  background: rgba(233, 69, 96, 0.22);
+  color: #fff;
+  border-color: rgba(233, 69, 96, 0.45);
+}
+
 /* Playback */
 .playback-section   { border-bottom: 1px solid var(--border); }
 
@@ -441,6 +453,35 @@ body {
   background: #000;
 }
 
+.timeline-markers-wrap {
+  padding: 8px 14px 12px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+}
+
+.timeline-markers {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.timeline-marker {
+  position: absolute;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.timeline-marker-motion { background: var(--warning); }
+.timeline-marker-sound { background: #60a5fa; }
+
 /* Recordings List */
 .recordings-list {
   padding: 12px 14px;
@@ -480,6 +521,36 @@ body {
   font-size: 0.72rem;
   color: var(--text-muted);
   margin-top: 3px;
+}
+
+.recording-activity {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.activity-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.activity-badge-motion {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.activity-badge-sound {
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.35);
+  background: rgba(147, 197, 253, 0.12);
 }
 
 .recording-actions {
