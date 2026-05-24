@@ -66,6 +66,7 @@ document.addEventListener('visibilitychange', async () => {
 let activeTab = 'stream';
 let recordingsFilter = 'all';
 let currentPlaybackEvents = [];
+const MAX_TIMELINE_MARKERS = 200;
 
 function switchTab(name, btn) {
   // Panels
@@ -468,8 +469,7 @@ function renderTimelineMarkers() {
     return;
   }
 
-  const maxMarkers = 200;
-  const events = currentPlaybackEvents.slice(0, maxMarkers);
+  const events = currentPlaybackEvents.slice(0, MAX_TIMELINE_MARKERS);
   for (const event of events) {
     const startSec = Number(event.startSec);
     if (!Number.isFinite(startSec) || startSec < 0 || startSec > duration) continue;

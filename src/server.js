@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readdirSync, statSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
@@ -37,28 +38,15 @@ function matchesActivityFilter(filter, hasMotion, hasSound) {
   return true;
 }
 
-function createRateLimiter({ windowMs, maxRequests }) {
-  const hits = new Map();
-
-  return (req, res, next) => {
-    const key = `${req.ip}:${req.path}`;
-    const now = Date.now();
-    const windowStart = now - windowMs;
-
-    const timestamps = (hits.get(key) || []).filter((ts) => ts > windowStart);
-    if (timestamps.length >= maxRequests) {
-      return res.status(429).json({ error: 'Too many requests, please retry later' });
-    }
-
-    timestamps.push(now);
-    hits.set(key, timestamps);
-    return next();
-  };
-}
-
 function createServer(camera, recorder, cleanup, config) {
   const app = express();
-  const deleteRecordingRateLimiter = createRateLimiter({ windowMs: 60 * 1000, maxRequests: 30 });
+  const deleteRecordingRateLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please retry later' }
+  });
 
   app.use(express.json());
   app.use(express.static(path.join(__dirname, '../public')));

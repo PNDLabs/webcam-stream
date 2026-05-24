@@ -460,7 +460,7 @@ class Recorder {
     };
 
     try {
-      writeFileSync(metadataPath, JSON.stringify(metadata));
+      writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
     } catch (err) {
       console.error(`Failed to write event metadata for ${recordingName}:`, err.message);
     }
