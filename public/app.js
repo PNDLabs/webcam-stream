@@ -427,7 +427,9 @@ async function playRecording(url, name) {
   video.onloadedmetadata = () => renderTimelineMarkers();
   video.src = url;
   section.classList.remove('hidden');
-  video.play().catch(() => {});
+  video.play().catch((err) => {
+    console.debug('Playback start requires user interaction:', err?.message || err);
+  });
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -479,7 +481,9 @@ function renderTimelineMarkers() {
     marker.setAttribute('aria-label', marker.title);
     marker.onclick = () => {
       video.currentTime = startSec;
-      video.play().catch(() => {});
+      video.play().catch((err) => {
+        console.debug('Playback resume requires user interaction:', err?.message || err);
+      });
     };
     markerContainer.appendChild(marker);
   }

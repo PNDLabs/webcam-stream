@@ -156,6 +156,9 @@ Once running, access the application at:
 # Get current status
 curl http://localhost:8081/api/status
 
+# List recordings with motion activity only
+curl "http://localhost:8081/api/recordings?filter=motion"
+
 # Toggle recording
 curl -X POST http://localhost:8081/api/recording/toggle
 

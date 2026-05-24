@@ -33,9 +33,27 @@ class Recorder {
       soundSilenceDurationSec: 0.6
     };
 
-    return {
+    const candidate = {
       ...defaults,
       ...(eventDetection || {})
+    };
+
+    const clampNumber = (value, fallback, min, max) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.min(max, Math.max(min, parsed));
+    };
+
+    return {
+      enabled: Boolean(candidate.enabled),
+      motionEnabled: Boolean(candidate.motionEnabled),
+      soundEnabled: Boolean(candidate.soundEnabled),
+      motionThreshold: clampNumber(candidate.motionThreshold, defaults.motionThreshold, 0, 1),
+      motionSampleIntervalMs: Math.round(clampNumber(candidate.motionSampleIntervalMs, defaults.motionSampleIntervalMs, 100, 10000)),
+      motionMinDurationMs: Math.round(clampNumber(candidate.motionMinDurationMs, defaults.motionMinDurationMs, 0, 20000)),
+      motionEndAfterMs: Math.round(clampNumber(candidate.motionEndAfterMs, defaults.motionEndAfterMs, 100, 20000)),
+      soundSilenceDb: clampNumber(candidate.soundSilenceDb, defaults.soundSilenceDb, -100, 0),
+      soundSilenceDurationSec: clampNumber(candidate.soundSilenceDurationSec, defaults.soundSilenceDurationSec, 0.1, 10)
     };
   }
 
@@ -130,8 +148,8 @@ class Recorder {
     const audioEnabled = this.audioConfig && this.audioConfig.enabled;
     const audioDevice = (this.audioConfig && this.audioConfig.device) || 'hw:0,0';
     const detectSound = this.shouldDetectSound(audioEnabled);
-    const silenceDb = Number(this.detectionConfig.soundSilenceDb);
-    const silenceDurationSec = Number(this.detectionConfig.soundSilenceDurationSec);
+    const silenceDb = this.detectionConfig.soundSilenceDb;
+    const silenceDurationSec = this.detectionConfig.soundSilenceDurationSec;
     const soundFilter = detectSound
       ? `silencedetect=n=${silenceDb}dB:d=${silenceDurationSec}`
       : null;
@@ -272,7 +290,7 @@ class Recorder {
     }
 
     const now = Date.now();
-    const sampleIntervalMs = Math.max(100, Number(this.detectionConfig.motionSampleIntervalMs) || 500);
+    const sampleIntervalMs = this.detectionConfig.motionSampleIntervalMs;
     if (now - this.motionState.lastSampleTs < sampleIntervalMs) {
       return;
     }
@@ -285,7 +303,7 @@ class Recorder {
 
     if (this.motionState.previousSample) {
       const diff = this.calculateSampleDifference(this.motionState.previousSample, sample);
-      const threshold = Number(this.detectionConfig.motionThreshold) || 0.12;
+      const threshold = this.detectionConfig.motionThreshold;
 
       if (diff >= threshold) {
         if (!this.motionState.active) {
@@ -294,7 +312,7 @@ class Recorder {
         }
         this.motionState.lastMotionTs = now;
       } else if (this.motionState.active) {
-        const endAfterMs = Math.max(200, Number(this.detectionConfig.motionEndAfterMs) || 1200);
+        const endAfterMs = this.detectionConfig.motionEndAfterMs;
         if (now - this.motionState.lastMotionTs >= endAfterMs) {
           this.closeMotionEvent(this.getElapsedSeconds());
         }

@@ -37,8 +37,28 @@ function matchesActivityFilter(filter, hasMotion, hasSound) {
   return true;
 }
 
+function createRateLimiter({ windowMs, maxRequests }) {
+  const hits = new Map();
+
+  return (req, res, next) => {
+    const key = `${req.ip}:${req.path}`;
+    const now = Date.now();
+    const windowStart = now - windowMs;
+
+    const timestamps = (hits.get(key) || []).filter((ts) => ts > windowStart);
+    if (timestamps.length >= maxRequests) {
+      return res.status(429).json({ error: 'Too many requests, please retry later' });
+    }
+
+    timestamps.push(now);
+    hits.set(key, timestamps);
+    return next();
+  };
+}
+
 function createServer(camera, recorder, cleanup, config) {
   const app = express();
+  const deleteRecordingRateLimiter = createRateLimiter({ windowMs: 60 * 1000, maxRequests: 30 });
 
   app.use(express.json());
   app.use(express.static(path.join(__dirname, '../public')));
@@ -83,7 +103,7 @@ function createServer(camera, recorder, cleanup, config) {
   // API: List recordings
   app.get('/api/recordings', (req, res) => {
     const outputDir = path.resolve(config.recording.outputDir);
-    const activityFilter = String(req.query.filter || req.query.activity || 'all').toLowerCase();
+    const activityFilter = String(req.query.filter || 'all').toLowerCase();
     const recordings = [];
 
     try {
@@ -406,7 +426,7 @@ function createServer(camera, recorder, cleanup, config) {
   });
 
   // API: Delete specific recording
-  app.delete('/api/recordings/:filename', (req, res) => {
+  app.delete('/api/recordings/:filename', deleteRecordingRateLimiter, (req, res) => {
     const filename = req.params.filename;
 
     if (filename.includes('..') || filename.includes('/')) {
