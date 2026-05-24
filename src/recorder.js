@@ -234,217 +234,217 @@ class Recorder {
       this.frameHandler = null;
     }
 
-    initializeSegmentDetection() {
-      this.segmentEvents = [];
-      this.motionState = {
-        previousSample: null,
-        active: false,
-        activeStartSec: null,
-        lastMotionTs: 0,
-        lastSampleTs: 0
-      };
-      this.soundState = {
-        active: this.shouldDetectSound(this.audioConfig?.enabled),
-        activeStartSec: this.shouldDetectSound(this.audioConfig?.enabled) ? 0 : null
-      };
-    }
-
-    shouldDetectMotion() {
-      return Boolean(this.detectionConfig.enabled && this.detectionConfig.motionEnabled);
-    }
-
-    shouldDetectSound(audioEnabled) {
-      return Boolean(this.detectionConfig.enabled && this.detectionConfig.soundEnabled && audioEnabled);
-    }
-
-    processFrameDetections(frame) {
-      if (!this.shouldDetectMotion() || !this.motionState) {
-        return;
-      }
-
-      const now = Date.now();
-      const sampleIntervalMs = Math.max(100, Number(this.detectionConfig.motionSampleIntervalMs) || 500);
-      if (now - this.motionState.lastSampleTs < sampleIntervalMs) {
-        return;
-      }
-      this.motionState.lastSampleTs = now;
-
-      const sample = this.createFrameSample(frame);
-      if (!sample) {
-        return;
-      }
-
-      if (this.motionState.previousSample) {
-        const diff = this.calculateSampleDifference(this.motionState.previousSample, sample);
-        const threshold = Number(this.detectionConfig.motionThreshold) || 0.12;
-
-        if (diff >= threshold) {
-          if (!this.motionState.active) {
-            this.motionState.active = true;
-            this.motionState.activeStartSec = this.getElapsedSeconds();
-          }
-          this.motionState.lastMotionTs = now;
-        } else if (this.motionState.active) {
-          const endAfterMs = Math.max(200, Number(this.detectionConfig.motionEndAfterMs) || 1200);
-          if (now - this.motionState.lastMotionTs >= endAfterMs) {
-            this.closeMotionEvent(this.getElapsedSeconds());
-          }
-        }
-      }
-
-      this.motionState.previousSample = sample;
-    }
-
-    processSoundDetections(ffmpegMessage) {
-      if (!this.soundState || !this.shouldDetectSound(this.audioConfig?.enabled)) {
-        return;
-      }
-
-      const lines = ffmpegMessage.split('\n');
-
-      for (const line of lines) {
-        const silenceStartMatch = line.match(/silence_start:\s*([0-9.]+)/);
-        if (silenceStartMatch) {
-          const silenceStart = Number(silenceStartMatch[1]);
-          if (Number.isFinite(silenceStart) && this.soundState.active) {
-            this.recordEvent('sound', this.soundState.activeStartSec ?? 0, silenceStart);
-            this.soundState.active = false;
-            this.soundState.activeStartSec = null;
-          }
-        }
-
-        const silenceEndMatch = line.match(/silence_end:\s*([0-9.]+)/);
-        if (silenceEndMatch) {
-          const silenceEnd = Number(silenceEndMatch[1]);
-          if (Number.isFinite(silenceEnd) && !this.soundState.active) {
-            this.soundState.active = true;
-            this.soundState.activeStartSec = silenceEnd;
-          }
-        }
-      }
-    }
-
-    createFrameSample(frame) {
-      if (!frame || frame.length < 128) {
-        return null;
-      }
-
-      const targetPoints = 256;
-      const step = Math.max(1, Math.floor(frame.length / targetPoints));
-      const sampleLength = Math.min(targetPoints, Math.floor(frame.length / step));
-      const sample = new Uint8Array(sampleLength);
-
-      for (let i = 0; i < sampleLength; i++) {
-        sample[i] = frame[i * step];
-      }
-
-      return sample;
-    }
-
-    calculateSampleDifference(previousSample, currentSample) {
-      const length = Math.min(previousSample.length, currentSample.length);
-      if (!length) {
-        return 0;
-      }
-
-      let total = 0;
-      for (let i = 0; i < length; i++) {
-        total += Math.abs(previousSample[i] - currentSample[i]);
-      }
-
-      return total / (length * 255);
-    }
-
-    closeMotionEvent(endSec) {
-      if (!this.motionState?.active) {
-        return;
-      }
-
-      this.recordEvent('motion', this.motionState.activeStartSec ?? 0, endSec);
-      this.motionState.active = false;
-      this.motionState.activeStartSec = null;
-    }
-
-    recordEvent(type, startSec, endSec) {
-      const start = Math.max(0, Number(startSec) || 0);
-      const end = Math.max(start, Number(endSec) || start);
-
-      if (end - start < 0.001) {
-        return;
-      }
-
-      if (type === 'motion') {
-        const minDurationSec = Math.max(0, (Number(this.detectionConfig.motionMinDurationMs) || 0) / 1000);
-        if (end - start < minDurationSec) {
-          return;
-        }
-      }
-
-      this.segmentEvents.push({
-        type,
-        startSec: Number(start.toFixed(3)),
-        endSec: Number(end.toFixed(3))
-      });
-    }
-
-    getElapsedSeconds() {
-      if (!this.segmentStartedAt) {
-        return 0;
-      }
-      const elapsed = (Date.now() - this.segmentStartedAt) / 1000;
-      const maxDuration = Number(this.config.segmentDuration) || elapsed;
-      return Math.min(maxDuration, Math.max(0, elapsed));
-    }
-
-    finalizeOpenEvents() {
-      const segmentEndSec = this.getElapsedSeconds();
-
-      if (this.motionState?.active) {
-        this.closeMotionEvent(segmentEndSec);
-      }
-
-      if (this.soundState?.active) {
-        this.recordEvent('sound', this.soundState.activeStartSec ?? 0, segmentEndSec);
-        this.soundState.active = false;
-        this.soundState.activeStartSec = null;
-      }
-
-      return segmentEndSec;
-    }
-
-    persistSegmentMetadata(segmentFile) {
-      const segmentEndSec = this.finalizeOpenEvents();
-      const recordingName = path.basename(segmentFile);
-      const metadataPath = `${segmentFile}.events.json`;
-      const hasMotion = this.segmentEvents.some((event) => event.type === 'motion');
-      const hasSound = this.segmentEvents.some((event) => event.type === 'sound');
-      const eventTypes = [];
-      if (hasMotion) eventTypes.push('motion');
-      if (hasSound) eventTypes.push('sound');
-
-      const metadata = {
-        recording: recordingName,
-        hasMotion,
-        hasSound,
-        eventTypes,
-        durationSec: Number(segmentEndSec.toFixed(3)),
-        events: this.segmentEvents,
-        createdAt: new Date(this.segmentStartedAt || Date.now()).toISOString()
-      };
-
-      try {
-        writeFileSync(metadataPath, JSON.stringify(metadata));
-      } catch (err) {
-        console.error(`Failed to write event metadata for ${recordingName}:`, err.message);
-      }
-    }
-
     if (this.process) {
       if (this.process.stdin.writable) {
         this.process.stdin.end();
       }
       this.process.kill('SIGTERM');
       this.process = null;
+    }
+  }
+
+  initializeSegmentDetection() {
+    this.segmentEvents = [];
+    this.motionState = {
+      previousSample: null,
+      active: false,
+      activeStartSec: null,
+      lastMotionTs: 0,
+      lastSampleTs: 0
+    };
+    this.soundState = {
+      active: this.shouldDetectSound(this.audioConfig?.enabled),
+      activeStartSec: this.shouldDetectSound(this.audioConfig?.enabled) ? 0 : null
+    };
+  }
+
+  shouldDetectMotion() {
+    return Boolean(this.detectionConfig.enabled && this.detectionConfig.motionEnabled);
+  }
+
+  shouldDetectSound(audioEnabled) {
+    return Boolean(this.detectionConfig.enabled && this.detectionConfig.soundEnabled && audioEnabled);
+  }
+
+  processFrameDetections(frame) {
+    if (!this.shouldDetectMotion() || !this.motionState) {
+      return;
+    }
+
+    const now = Date.now();
+    const sampleIntervalMs = Math.max(100, Number(this.detectionConfig.motionSampleIntervalMs) || 500);
+    if (now - this.motionState.lastSampleTs < sampleIntervalMs) {
+      return;
+    }
+    this.motionState.lastSampleTs = now;
+
+    const sample = this.createFrameSample(frame);
+    if (!sample) {
+      return;
+    }
+
+    if (this.motionState.previousSample) {
+      const diff = this.calculateSampleDifference(this.motionState.previousSample, sample);
+      const threshold = Number(this.detectionConfig.motionThreshold) || 0.12;
+
+      if (diff >= threshold) {
+        if (!this.motionState.active) {
+          this.motionState.active = true;
+          this.motionState.activeStartSec = this.getElapsedSeconds();
+        }
+        this.motionState.lastMotionTs = now;
+      } else if (this.motionState.active) {
+        const endAfterMs = Math.max(200, Number(this.detectionConfig.motionEndAfterMs) || 1200);
+        if (now - this.motionState.lastMotionTs >= endAfterMs) {
+          this.closeMotionEvent(this.getElapsedSeconds());
+        }
+      }
+    }
+
+    this.motionState.previousSample = sample;
+  }
+
+  processSoundDetections(ffmpegMessage) {
+    if (!this.soundState || !this.shouldDetectSound(this.audioConfig?.enabled)) {
+      return;
+    }
+
+    const lines = ffmpegMessage.split('\n');
+
+    for (const line of lines) {
+      const silenceStartMatch = line.match(/silence_start:\s*([0-9.]+)/);
+      if (silenceStartMatch) {
+        const silenceStart = Number(silenceStartMatch[1]);
+        if (Number.isFinite(silenceStart) && this.soundState.active) {
+          this.recordEvent('sound', this.soundState.activeStartSec ?? 0, silenceStart);
+          this.soundState.active = false;
+          this.soundState.activeStartSec = null;
+        }
+      }
+
+      const silenceEndMatch = line.match(/silence_end:\s*([0-9.]+)/);
+      if (silenceEndMatch) {
+        const silenceEnd = Number(silenceEndMatch[1]);
+        if (Number.isFinite(silenceEnd) && !this.soundState.active) {
+          this.soundState.active = true;
+          this.soundState.activeStartSec = silenceEnd;
+        }
+      }
+    }
+  }
+
+  createFrameSample(frame) {
+    if (!frame || frame.length < 128) {
+      return null;
+    }
+
+    const targetPoints = 256;
+    const step = Math.max(1, Math.floor(frame.length / targetPoints));
+    const sampleLength = Math.min(targetPoints, Math.floor(frame.length / step));
+    const sample = new Uint8Array(sampleLength);
+
+    for (let i = 0; i < sampleLength; i++) {
+      sample[i] = frame[i * step];
+    }
+
+    return sample;
+  }
+
+  calculateSampleDifference(previousSample, currentSample) {
+    const length = Math.min(previousSample.length, currentSample.length);
+    if (!length) {
+      return 0;
+    }
+
+    let total = 0;
+    for (let i = 0; i < length; i++) {
+      total += Math.abs(previousSample[i] - currentSample[i]);
+    }
+
+    return total / (length * 255);
+  }
+
+  closeMotionEvent(endSec) {
+    if (!this.motionState?.active) {
+      return;
+    }
+
+    this.recordEvent('motion', this.motionState.activeStartSec ?? 0, endSec);
+    this.motionState.active = false;
+    this.motionState.activeStartSec = null;
+  }
+
+  recordEvent(type, startSec, endSec) {
+    const start = Math.max(0, Number(startSec) || 0);
+    const end = Math.max(start, Number(endSec) || start);
+
+    if (end - start < 0.001) {
+      return;
+    }
+
+    if (type === 'motion') {
+      const minDurationSec = Math.max(0, (Number(this.detectionConfig.motionMinDurationMs) || 0) / 1000);
+      if (end - start < minDurationSec) {
+        return;
+      }
+    }
+
+    this.segmentEvents.push({
+      type,
+      startSec: Number(start.toFixed(3)),
+      endSec: Number(end.toFixed(3))
+    });
+  }
+
+  getElapsedSeconds() {
+    if (!this.segmentStartedAt) {
+      return 0;
+    }
+    const elapsed = (Date.now() - this.segmentStartedAt) / 1000;
+    const maxDuration = Number(this.config.segmentDuration) || elapsed;
+    return Math.min(maxDuration, Math.max(0, elapsed));
+  }
+
+  finalizeOpenEvents() {
+    const segmentEndSec = this.getElapsedSeconds();
+
+    if (this.motionState?.active) {
+      this.closeMotionEvent(segmentEndSec);
+    }
+
+    if (this.soundState?.active) {
+      this.recordEvent('sound', this.soundState.activeStartSec ?? 0, segmentEndSec);
+      this.soundState.active = false;
+      this.soundState.activeStartSec = null;
+    }
+
+    return segmentEndSec;
+  }
+
+  persistSegmentMetadata(segmentFile) {
+    const segmentEndSec = this.finalizeOpenEvents();
+    const recordingName = path.basename(segmentFile);
+    const metadataPath = `${segmentFile}.events.json`;
+    const hasMotion = this.segmentEvents.some((event) => event.type === 'motion');
+    const hasSound = this.segmentEvents.some((event) => event.type === 'sound');
+    const eventTypes = [];
+    if (hasMotion) eventTypes.push('motion');
+    if (hasSound) eventTypes.push('sound');
+
+    const metadata = {
+      recording: recordingName,
+      hasMotion,
+      hasSound,
+      eventTypes,
+      durationSec: Number(segmentEndSec.toFixed(3)),
+      events: this.segmentEvents,
+      createdAt: new Date(this.segmentStartedAt || Date.now()).toISOString()
+    };
+
+    try {
+      writeFileSync(metadataPath, JSON.stringify(metadata));
+    } catch (err) {
+      console.error(`Failed to write event metadata for ${recordingName}:`, err.message);
     }
   }
 
